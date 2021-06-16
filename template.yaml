@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: The AWS CloudFormation template for Minecraft server management
+
+Resources:
+
+  # Role for Lambda
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: example-lambda-execution-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: lambda-execution-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:PutLogEvents'
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:*'
+                Resource: '*'
+      Path: /example/
+
+
+  ExampleLambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: minecraft-tool-deployment-bucket
+        S3Key: minecraft-tool.zip
+      FunctionName: server-scheduled-starter
+      Handler: net.broscorp.handler.Handler::handler
+      MemorySize: 512
+      Role: !GetAtt
+        - LambdaExecutionRole
+        - Arn
+      Runtime: java11
+      Timeout: 30
+      Environment:
+        Variables:
+          TaskBuketName:
+    DependsOn:
+      - LambdaExecutionRole
+
