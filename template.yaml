@@ -1,9 +1,22 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: The AWS CloudFormation template for Minecraft server management
+Description: The AWS CloudFormation template with simple Lambda function example
+
+Parameters:
+
+  TaskDumpBucketName:
+    Type: String
+    Description: Bucket name for storing records dump
 
 Resources:
 
-  # Role for Lambda
+  TaskDumpBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref TaskDumpBucketName
+      LifecycleConfiguration:
+        Rules:
+          ExpirationInDays: 30
+
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -32,6 +45,10 @@ Resources:
                 Action:
                   - 'cloudwatch:*'
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource: !GetAtt TaskDumpBucket.Arn
       Path: /example/
 
 
@@ -42,7 +59,7 @@ Resources:
         S3Bucket: minecraft-tool-deployment-bucket
         S3Key: minecraft-tool.zip
       FunctionName: server-scheduled-starter
-      Handler: net.broscorp.handler.Handler::handler
+      Handler: net.broscorp.handler.TaskSyncHandler::handleRequest
       MemorySize: 512
       Role: !GetAtt
         - LambdaExecutionRole
@@ -51,7 +68,9 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          TaskBuketName:
+          TaskBuketName: !Ref TaskDumpBucket
+          TasksBaseUrl: "https://jsonplaceholder.typicode.com/users/1/todos"
     DependsOn:
+      - TaskDumpBucket
       - LambdaExecutionRole
 
